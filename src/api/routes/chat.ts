@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import Request from '@/lib/request/Request.ts';
 import Response from '@/lib/response/Response.ts';
-import { tokenSplit } from '@/api/controllers/core.ts';
+import { acquireRequestToken } from "@/lib/token-manager.ts";
 import { createCompletion, createCompletionStream } from '@/api/controllers/chat.ts';
 
 export default {
@@ -15,20 +15,25 @@ export default {
             request
                 .validate('body.model', v => _.isUndefined(v) || _.isString(v))
                 .validate('body.messages', _.isArray)
-                .validate('headers.authorization', _.isString)
-            // refresh_token切分
-            const tokens = tokenSplit(request.headers.authorization);
-            // 随机挑选一个refresh_token
-            const token = _.sample(tokens);
+            const { token, release } = await acquireRequestToken(request);
             const { model, messages, stream } = request.body;
             if (stream) {
-                const stream = await createCompletionStream(messages, token, model);
-                return new Response(stream, {
+                const streamBody = await createCompletionStream(messages, token, model);
+                const cleanup = _.once(release);
+                streamBody.on("end", cleanup);
+                streamBody.on("close", cleanup);
+                streamBody.on("error", cleanup);
+                return new Response(streamBody, {
                     type: "text/event-stream"
                 });
             }
-            else
-                return await createCompletion(messages, token, model);
+            else {
+                try {
+                    return await createCompletion(messages, token, model);
+                } finally {
+                    release();
+                }
+            }
         }
 
     }

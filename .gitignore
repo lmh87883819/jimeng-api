@@ -9,6 +9,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Local configs (contain secrets like tokens)
+configs/
+
 # Logs
 logs/
 *.log
@@ -55,5 +58,3 @@ coverage/
 tmp/
 temp/
 jimeng-*.md
-
-configs/dev/

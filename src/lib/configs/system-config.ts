@@ -15,6 +15,10 @@ export class SystemConfig {
 
     /** 是否开启请求日志 */
     requestLog: boolean;
+    /** 固定 token 列表（可选；为空则从 Authorization 读取） */
+    tokens: string[];
+    /** 每个 token 允许的并发数 */
+    tokenConcurrency: number;
     /** 临时目录路径 */
     tmpDir: string;
     /** 日志目录路径 */
@@ -33,8 +37,10 @@ export class SystemConfig {
     log_level: string;
 
     constructor(options?: any) {
-        const { requestLog, tmpDir, logDir, logWriteInterval, logFileExpires, tmpFileExpires, requestBody, debug, log_level } = options || {};
+        const { requestLog, tokens, tokenConcurrency, tmpDir, logDir, logWriteInterval, logFileExpires, tmpFileExpires, requestBody, debug, log_level } = options || {};
         this.requestLog = _.defaultTo(requestLog, false);
+        this.tokens = _.chain(tokens).castArray().filter(_.isString).map((t) => t.trim()).filter(Boolean).uniq().value();
+        this.tokenConcurrency = _.defaultTo(tokenConcurrency, 3);
         this.tmpDir = _.defaultTo(tmpDir, './tmp');
         this.logDir = _.defaultTo(logDir, './logs');
         this.logWriteInterval = _.defaultTo(logWriteInterval, 200);
